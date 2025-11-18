@@ -26,6 +26,9 @@ docs/
 │   ├── COMPLETE_STACK.md        # Full stack with Langfuse, LangGraph, CopilotKit
 │   ├── INTEGRATION_PATTERNS.md  # Integration patterns and examples
 │   └── QUICK_START.md           # Quick start guide
+├── ARCHITECTURE_ENHANCEMENTS.md # Production enhancements and missing components
+├── ARCHITECTURE_REVIEW_PROMPT.md # Perplexity prompt for architecture review
+└── PERPLEXITY_PROMPT.txt        # Quick-copy Perplexity prompt
 ├── tutorials/                   # Tutorial materials (to be added)
 ├── cookbooks/                   # Code recipes and patterns
 │   ├── BASIC_PATTERNS.md       # Common patterns and recipes
