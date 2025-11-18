@@ -28,7 +28,8 @@ docs/
 │   └── QUICK_START.md           # Quick start guide
 ├── ARCHITECTURE_ENHANCEMENTS.md # Production enhancements and missing components
 ├── ARCHITECTURE_REVIEW_PROMPT.md # Perplexity prompt for architecture review
-└── PERPLEXITY_PROMPT.txt        # Quick-copy Perplexity prompt
+├── PERPLEXITY_PROMPT.txt        # Quick-copy Perplexity prompt
+├── QUICK_IMPLEMENTATIONS.md    # Quick implementation guides for enhancements
 ├── tutorials/                   # Tutorial materials (to be added)
 ├── cookbooks/                   # Code recipes and patterns
 │   ├── BASIC_PATTERNS.md       # Common patterns and recipes
