@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.api.routes import health, agents, chat, webhooks, copilotkit
+from app.api.routes import health, agents, chat, webhooks, copilotkit, events
 from app.middleware.error_handler import setup_error_handlers
 from app.middleware.logging import setup_logging
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -39,6 +39,7 @@ app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(copilotkit.router, prefix="/api", tags=["copilotkit"])
+app.include_router(events.router, prefix="/api", tags=["events"])
 
 
 @app.get("/")

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
+import { useCopilotReadable } from "@copilotkit/react-core";
 import { Send } from "lucide-react";
 import { CardSection } from "@/components/shared/CardSection";
 import { cn } from "@/lib/utils";
+import { chat } from "@/lib/api";
 
 interface ChatMessage {
   id: string;
@@ -35,6 +36,32 @@ export function ChatPanel({ sessionId }: ChatPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem(`chat-messages-${sessionId}`);
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp),
+        })));
+      } catch (error) {
+        console.error("Failed to load saved messages:", error);
+      }
+    }
+  }, [sessionId]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(
+        `chat-messages-${sessionId}`,
+        JSON.stringify(messages)
+      );
+    }
+  }, [messages, sessionId]);
+
   // Handle sending messages
   const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
@@ -47,21 +74,37 @@ export function ChatPanel({ sessionId }: ChatPanelProps) {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageText = input.trim();
     setInput("");
     setIsStreaming(true);
 
-    // In a real implementation, this would call the CopilotKit API
-    // For now, we'll simulate a response
-    setTimeout(() => {
+    try {
+      // Call the real chat API
+      const response = await chat(messageText, sessionId, "infrastructure_monitor");
+      
       const assistantMessage: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         role: "assistant",
-        content: "I'm processing your request...",
+        content: response.response || "No response received",
         timestamp: new Date(),
       };
+      
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      
+      // Show error message to user
+      const errorMessage: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        role: "assistant",
+        content: `Error: ${error instanceof Error ? error.message : "Failed to send message"}`,
+        timestamp: new Date(),
+      };
+      
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsStreaming(false);
-    }, 1000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -127,11 +170,17 @@ export function ChatPanel({ sessionId }: ChatPanelProps) {
             className="flex-1 resize-none rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={1}
             disabled={isStreaming}
+            aria-label="Chat message input"
+            aria-describedby="chat-input-help"
           />
+          <span id="chat-input-help" className="sr-only">
+            Press Enter to send, Shift+Enter for newline
+          </span>
           <button
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            aria-label="Send message"
           >
             <Send className="w-4 h-4" />
           </button>

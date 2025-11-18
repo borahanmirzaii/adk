@@ -6,6 +6,17 @@ import { WorkflowStepBadge } from "./WorkflowStepBadge";
 import type { AgentEvent } from "@/types/events";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import {
+  isToolCallStartedPayload,
+  isToolCallResultPayload,
+  isWorkflowStepStartedPayload,
+  isWorkflowStepCompletedPayload,
+  isAgentMessageDeltaPayload,
+  isAgentMessageEndPayload,
+  isAgentThoughtPayload,
+  isRunErrorPayload,
+} from "@/lib/typeGuards";
+import { sanitizeJson, escapeHtml } from "@/lib/sanitize";
 
 interface TimelineItemProps {
   event: AgentEvent;
@@ -19,65 +30,108 @@ export function TimelineItem({ event, isLast }: TimelineItemProps) {
 
   const renderEventContent = () => {
     switch (event.type) {
-      case "tool_call_started":
+      case "tool_call_started": {
+        if (isToolCallStartedPayload(event.payload)) {
+          return (
+            <ToolCallCard
+              toolName={event.payload.tool_name}
+              args={event.payload.args || {}}
+              timestamp={event.timestamp}
+            />
+          );
+        }
+        break;
+      }
       case "tool_call_result": {
-        const payload = event.payload as any;
-        return (
-          <ToolCallCard
-            toolName={payload.tool_name}
-            args={payload.args || {}}
-            result={event.type === "tool_call_result" ? payload.result : undefined}
-            error={event.type === "tool_call_result" ? payload.error : undefined}
-            timestamp={event.timestamp}
-          />
-        );
+        if (isToolCallResultPayload(event.payload)) {
+          return (
+            <ToolCallCard
+              toolName={event.payload.tool_name}
+              args={{}}
+              result={event.payload.result}
+              error={event.payload.error}
+              timestamp={event.timestamp}
+            />
+          );
+        }
+        break;
       }
-      case "workflow_step_started":
+      case "workflow_step_started": {
+        if (isWorkflowStepStartedPayload(event.payload)) {
+          return (
+            <WorkflowStepBadge
+              stepId={event.payload.step_id}
+              status="active"
+            />
+          );
+        }
+        break;
+      }
       case "workflow_step_completed": {
-        const payload = event.payload as any;
-        return (
-          <WorkflowStepBadge
-            stepId={payload.step_id}
-            status={
-              event.type === "workflow_step_completed"
-                ? "completed"
-                : "active"
-            }
-          />
-        );
+        if (isWorkflowStepCompletedPayload(event.payload)) {
+          return (
+            <WorkflowStepBadge
+              stepId={event.payload.step_id}
+              status="completed"
+            />
+          );
+        }
+        break;
       }
-      case "agent_message_delta":
+      case "agent_message_delta": {
+        if (isAgentMessageDeltaPayload(event.payload)) {
+          return (
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              {escapeHtml(event.payload.delta)}
+            </div>
+          );
+        }
+        break;
+      }
       case "agent_message_end": {
-        const payload = event.payload as any;
-        return (
-          <div className="text-sm text-gray-700 dark:text-gray-300">
-            {payload.delta || payload.content}
-          </div>
-        );
+        if (isAgentMessageEndPayload(event.payload)) {
+          return (
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              {escapeHtml(event.payload.content)}
+            </div>
+          );
+        }
+        break;
       }
       case "agent_thought": {
-        const payload = event.payload as any;
-        return (
-          <div className="text-sm italic text-gray-600 dark:text-gray-400">
-            {payload.content}
-          </div>
-        );
+        if (isAgentThoughtPayload(event.payload)) {
+          return (
+            <div className="text-sm italic text-gray-600 dark:text-gray-400">
+              {escapeHtml(event.payload.content)}
+            </div>
+          );
+        }
+        break;
       }
       case "run_error": {
-        const payload = event.payload as any;
-        return (
-          <div className="text-sm text-red-700 dark:text-red-400">
-            {payload.message}
-          </div>
-        );
+        if (isRunErrorPayload(event.payload)) {
+          return (
+            <div className="text-sm text-red-700 dark:text-red-400">
+              {escapeHtml(event.payload.message)}
+            </div>
+          );
+        }
+        break;
       }
       default:
         return (
           <div className="text-xs text-gray-500 dark:text-gray-500">
-            {JSON.stringify(event.payload, null, 2)}
+            <pre>{sanitizeJson(event.payload)}</pre>
           </div>
         );
     }
+    
+    // Fallback if type guards fail
+    return (
+      <div className="text-xs text-gray-500 dark:text-gray-500">
+        <pre>{sanitizeJson(event.payload)}</pre>
+      </div>
+    );
   };
 
   return (

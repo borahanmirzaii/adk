@@ -21,12 +21,16 @@ export function ToolCallCard({
   timestamp,
 }: ToolCallCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const cardId = `tool-call-${toolName}-${timestamp}`;
 
   return (
     <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        aria-expanded={expanded}
+        aria-controls={cardId}
+        aria-label={`${expanded ? "Collapse" : "Expand"} tool call ${toolName}`}
       >
         <div className="flex items-center gap-3">
           {expanded ? (
@@ -51,6 +55,9 @@ export function ToolCallCard({
       <AnimatePresence>
         {expanded && (
           <motion.div
+            id={cardId}
+            role="region"
+            aria-labelledby={`tool-call-header-${cardId}`}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

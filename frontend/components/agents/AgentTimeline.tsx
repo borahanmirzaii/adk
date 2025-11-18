@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import type { AgentEvent, EventType } from "@/types/events";
 import { Filter } from "lucide-react";
+import { MAX_EVENTS } from "@/lib/constants";
 
 interface AgentTimelineProps {
   sessionId: string;
@@ -17,17 +18,26 @@ export function AgentTimeline({ sessionId }: AgentTimelineProps) {
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [filter, setFilter] = useState<EventType[] | null>(null);
 
-  const { connected } = useAgentEvents(
+  const { connected } =   useAgentEvents(
     sessionId,
     {
       session_started: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       session_ended: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       agent_message_start: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       agent_message_delta: (event) => {
         setEvents((prev) => {
@@ -46,64 +56,119 @@ export function AgentTimeline({ sessionId }: AgentTimelineProps) {
                 delta: (lastEvent.payload.delta || "") + event.payload.delta,
               },
             };
-            return updated;
+            return updated.slice(-MAX_EVENTS);
           }
-          return [...prev, event];
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
         });
       },
       agent_message_end: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       tool_call_started: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       tool_call_delta: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       tool_call_result: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       workflow_started: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       workflow_step_started: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       workflow_step_completed: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       workflow_transition: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       workflow_completed: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       agent_thought: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       run_error: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       run_retry: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       run_interrupted: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       retrieval_started: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       retrieval_result: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       automation_triggered: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       automation_completed: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
       metrics_update: (event) => {
-        setEvents((prev) => [...prev, event]);
+        setEvents((prev) => {
+          const updated = [...prev, event];
+          return updated.slice(-MAX_EVENTS);
+        });
       },
     },
     (event) => {
@@ -115,6 +180,15 @@ export function AgentTimeline({ sessionId }: AgentTimelineProps) {
     if (!filter || filter.length === 0) return events;
     return events.filter((event) => filter.includes(event.type));
   }, [events, filter]);
+
+  // Virtualization setup
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: filteredEvents.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 100, // Estimated height per item
+    overscan: 5, // Render 5 extra items outside viewport
+  });
 
   if (!connected && events.length === 0) {
     return (
@@ -135,20 +209,47 @@ export function AgentTimeline({ sessionId }: AgentTimelineProps) {
           <Filter className="w-4 h-4" />
         </button>
       }
+      className="h-full flex flex-col"
     >
-      <div className="space-y-0">
+      <div
+        ref={parentRef}
+        className="flex-1 overflow-auto"
+        style={{ contain: "strict" }}
+      >
         {filteredEvents.length === 0 ? (
           <div className="text-center py-8 text-sm text-gray-500">
             No events yet
           </div>
         ) : (
-          filteredEvents.map((event, index) => (
-            <TimelineItem
-              key={event.event_id}
-              event={event}
-              isLast={index === filteredEvents.length - 1}
-            />
-          ))
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const event = filteredEvents[virtualItem.index];
+              return (
+                <div
+                  key={virtualItem.key}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <TimelineItem
+                    event={event}
+                    isLast={virtualItem.index === filteredEvents.length - 1}
+                  />
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </CardSection>

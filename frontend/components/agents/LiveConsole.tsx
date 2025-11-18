@@ -6,6 +6,7 @@ import { CardSection } from "@/components/shared/CardSection";
 import { Terminal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentEvent } from "@/types/events";
+import { MAX_CONSOLE_LOGS } from "@/lib/constants";
 
 interface ConsoleLog {
   id: string;
@@ -45,56 +46,78 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
     sessionId,
     {
       agent_thought: (event) => {
-        const payload = event.payload as any;
-        setLogs((prev) => [
-          ...prev,
-          {
-            id: `log-${Date.now()}-${Math.random()}`,
-            timestamp: new Date(event.timestamp),
-            level: "debug",
-            message: payload.content,
-            source: `agent_thought:${payload.agent || "unknown"}`,
-          },
-        ]);
+        if (isAgentThoughtPayload(event.payload)) {
+          setLogs((prev) => {
+            const updated = [
+              ...prev,
+              {
+                id: `log-${Date.now()}-${Math.random()}`,
+                timestamp: new Date(event.timestamp),
+                level: "debug" as const,
+                message: event.payload.content,
+                source: `agent_thought:${event.payload.agent || "unknown"}`,
+              },
+            ];
+            return updated.slice(-MAX_CONSOLE_LOGS);
+          });
+        }
       },
       tool_call_delta: (event) => {
-        const payload = event.payload as any;
-        setLogs((prev) => [
-          ...prev,
-          {
-            id: `log-${Date.now()}-${Math.random()}`,
-            timestamp: new Date(event.timestamp),
-            level: "info",
-            message: payload.delta,
-            source: "tool_call",
-          },
-        ]);
+        // ToolCallDeltaPayload has delta field
+        if (
+          typeof event.payload === "object" &&
+          event.payload !== null &&
+          "delta" in event.payload &&
+          typeof (event.payload as any).delta === "string"
+        ) {
+          setLogs((prev) => {
+            const updated = [
+              ...prev,
+              {
+                id: `log-${Date.now()}-${Math.random()}`,
+                timestamp: new Date(event.timestamp),
+                level: "info" as const,
+                message: (event.payload as any).delta,
+                source: "tool_call",
+              },
+            ];
+            return updated.slice(-MAX_CONSOLE_LOGS);
+          });
+        }
       },
       run_error: (event) => {
-        const payload = event.payload as any;
-        setLogs((prev) => [
-          ...prev,
-          {
-            id: `log-${Date.now()}-${Math.random()}`,
-            timestamp: new Date(event.timestamp),
-            level: "error",
-            message: payload.message,
-            source: `error:${payload.agent || "unknown"}`,
-          },
-        ]);
+        if (isRunErrorPayload(event.payload)) {
+          setLogs((prev) => {
+            const updated = [
+              ...prev,
+              {
+                id: `log-${Date.now()}-${Math.random()}`,
+                timestamp: new Date(event.timestamp),
+                level: "error" as const,
+                message: event.payload.message,
+                source: `error:${event.payload.agent || "unknown"}`,
+              },
+            ];
+            return updated.slice(-MAX_CONSOLE_LOGS);
+          });
+        }
       },
       agent_message_delta: (event) => {
-        const payload = event.payload as any;
-        setLogs((prev) => [
-          ...prev,
-          {
-            id: `log-${Date.now()}-${Math.random()}`,
-            timestamp: new Date(event.timestamp),
-            level: "info",
-            message: payload.delta,
-            source: "agent_message",
-          },
-        ]);
+        if (isAgentMessageDeltaPayload(event.payload)) {
+          setLogs((prev) => {
+            const updated = [
+              ...prev,
+              {
+                id: `log-${Date.now()}-${Math.random()}`,
+                timestamp: new Date(event.timestamp),
+                level: "info" as const,
+                message: event.payload.delta,
+                source: "agent_message",
+              },
+            ];
+            return updated.slice(-MAX_CONSOLE_LOGS);
+          });
+        }
       },
     },
     (event) => {
@@ -108,6 +131,14 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
   const filteredLogs = logs.filter((log) => {
     if (filter === "all") return true;
     return log.level === filter;
+  });
+
+  // Virtualization setup
+  const virtualizer = useVirtualizer({
+    count: filteredLogs.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 24, // Estimated height per log line
+    overscan: 10, // Render 10 extra items outside viewport
   });
 
   const getLevelColor = (level: ConsoleLog["level"]) => {
@@ -138,6 +169,7 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
               setFilter(e.target.value as typeof filter)
             }
             className="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1"
+            aria-label="Filter console logs by level"
           >
             <option value="all">All</option>
             <option value="info">Info</option>
@@ -149,6 +181,7 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
             onClick={clearLogs}
             className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
             title="Clear logs"
+            aria-label="Clear all console logs"
           >
             <X className="w-4 h-4" />
           </button>
@@ -160,25 +193,49 @@ export function LiveConsole({ sessionId }: LiveConsoleProps) {
         ref={containerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto bg-gray-900 text-green-400 font-mono text-xs p-4 rounded"
+        style={{ contain: "strict" }}
+        role="log"
+        aria-label="Console output"
+        aria-live="polite"
+        aria-atomic="false"
       >
         {filteredLogs.length === 0 ? (
           <div className="text-gray-500 italic">No logs yet...</div>
         ) : (
-          filteredLogs.map((log) => (
-            <div
-              key={log.id}
-              className="mb-1 flex gap-2"
-            >
-              <span className="text-gray-500">
-                {log.timestamp.toLocaleTimeString()}
-              </span>
-              <span className={cn("font-semibold", getLevelColor(log.level))}>
-                [{log.level.toUpperCase()}]
-              </span>
-              <span className="text-gray-400">[{log.source}]</span>
-              <span className="flex-1">{log.message}</span>
-            </div>
-          ))
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const log = filteredLogs[virtualItem.index];
+              return (
+                <div
+                  key={virtualItem.key}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                  className="mb-1 flex gap-2 px-4"
+                >
+                  <span className="text-gray-500">
+                    {log.timestamp.toLocaleTimeString()}
+                  </span>
+                  <span className={cn("font-semibold", getLevelColor(log.level))}>
+                    [{log.level.toUpperCase()}]
+                  </span>
+                  <span className="text-gray-400">[{log.source}]</span>
+                  <span className="flex-1">{sanitizeConsoleMessage(log.message)}</span>
+                </div>
+              );
+            })}
+          </div>
         )}
         <div ref={logsEndRef} />
       </div>

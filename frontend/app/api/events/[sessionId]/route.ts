@@ -8,28 +8,54 @@ export async function GET(
 ) {
   const { sessionId } = params;
 
-  // Check if backend SSE endpoint exists
+  if (!sessionId) {
+    return new Response(
+      `event: run_error\ndata: ${JSON.stringify({
+        event_id: "error",
+        session_id: "",
+        timestamp: new Date().toISOString(),
+        type: "run_error",
+        payload: {
+          error_type: "validation_error",
+          message: "session_id is required",
+          agent: "system",
+        },
+      })}\n\n`,
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+        },
+      }
+    );
+  }
+
   const backendUrl = `${API_URL}/api/events/${sessionId}`;
 
   try {
-    // Try to connect to backend SSE endpoint
+    // Connect to backend SSE endpoint
     const response = await fetch(backendUrl, {
       headers: {
         Accept: "text/event-stream",
+        "Cache-Control": "no-cache",
       },
+      // @ts-ignore - Next.js fetch doesn't have signal in types but it works
+      signal: request.signal,
     });
 
     if (!response.ok) {
-      // If backend doesn't have SSE endpoint, return a basic SSE stream
-      // that can be enhanced with Supabase real-time later
+      // Backend endpoint not available - return error event
       return new Response(
-        `data: ${JSON.stringify({
-          event_id: "connection",
+        `event: run_error\ndata: ${JSON.stringify({
+          event_id: "error",
           session_id: sessionId,
           timestamp: new Date().toISOString(),
-          type: "session_stream_started",
+          type: "run_error",
           payload: {
-            message: "SSE connection established. Backend endpoint not available.",
+            error_type: "backend_unavailable",
+            message: `Backend SSE endpoint returned ${response.status}: ${response.statusText}`,
+            agent: "system",
           },
         })}\n\n`,
         {
@@ -37,37 +63,60 @@ export async function GET(
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
             Connection: "keep-alive",
-            "Access-Control-Allow-Origin": "*",
           },
         }
       );
     }
 
-    // Proxy the backend SSE stream
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
+    if (!response.body) {
+      throw new Error("Response body is null");
+    }
 
+    // Create a readable stream that proxies the backend SSE stream
     const stream = new ReadableStream({
       async start(controller) {
-        if (!reader) {
-          controller.close();
-          return;
-        }
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
 
         try {
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            
+            if (done) {
+              controller.close();
+              break;
+            }
 
+            // Decode and forward the chunk
             const chunk = decoder.decode(value, { stream: true });
             controller.enqueue(new TextEncoder().encode(chunk));
           }
         } catch (error) {
-          console.error("SSE proxy error:", error);
-          controller.error(error);
-        } finally {
+          console.error("[SSE Proxy] Error reading stream:", error);
+          
+          // Send error event before closing
+          const errorEvent = `event: run_error\ndata: ${JSON.stringify({
+            event_id: "error",
+            session_id: sessionId,
+            timestamp: new Date().toISOString(),
+            type: "run_error",
+            payload: {
+              error_type: "stream_error",
+              message: error instanceof Error ? error.message : "Unknown stream error",
+              agent: "system",
+            },
+          })}\n\n`;
+          
+          controller.enqueue(new TextEncoder().encode(errorEvent));
           controller.close();
+        } finally {
+          reader.releaseLock();
         }
+      },
+      
+      cancel() {
+        // Clean up when client disconnects
+        response.body?.cancel();
       },
     });
 
@@ -76,21 +125,22 @@ export async function GET(
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
+        "X-Accel-Buffering": "no", // Disable nginx buffering
       },
     });
   } catch (error) {
-    console.error("Failed to connect to backend SSE:", error);
-    // Return a basic SSE stream indicating connection issue
+    console.error("[SSE Proxy] Failed to connect to backend:", error);
+    
+    // Return error event
     return new Response(
-      `data: ${JSON.stringify({
+      `event: run_error\ndata: ${JSON.stringify({
         event_id: "error",
         session_id: sessionId,
         timestamp: new Date().toISOString(),
         type: "run_error",
         payload: {
           error_type: "connection_error",
-          message: "Failed to connect to backend event stream",
+          message: error instanceof Error ? error.message : "Failed to connect to backend event stream",
           agent: "system",
         },
       })}\n\n`,

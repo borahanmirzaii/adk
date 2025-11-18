@@ -8,6 +8,11 @@ import { Code, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { ToolCallStartedEvent, ToolCallResultEvent } from "@/types/events";
+import {
+  isToolCallStartedPayload,
+  isToolCallResultPayload,
+} from "@/lib/typeGuards";
+import { sanitizeJson } from "@/lib/sanitize";
 
 interface ToolInspectorProps {
   sessionId: string;
@@ -34,31 +39,33 @@ export function ToolInspector({ sessionId }: ToolInspectorProps) {
     sessionId,
     {
       tool_call_started: (event) => {
-        const payload = (event as ToolCallStartedEvent).payload;
-        setLastToolCall({
-          tool_call_id: payload.tool_call_id,
-          tool_name: payload.tool_name,
-          args: payload.args,
-          timestamp: event.timestamp,
-        });
-        setExpandedSections({ args: true, result: false, error: false });
+        if (isToolCallStartedPayload(event.payload)) {
+          setLastToolCall({
+            tool_call_id: event.payload.tool_call_id,
+            tool_name: event.payload.tool_name,
+            args: event.payload.args,
+            timestamp: event.timestamp,
+          });
+          setExpandedSections({ args: true, result: false, error: false });
+        }
       },
       tool_call_result: (event) => {
-        const payload = (event as ToolCallResultEvent).payload;
-        setLastToolCall((prev) => {
-          if (prev?.tool_call_id === payload.tool_call_id) {
-            return {
-              ...prev,
-              result: payload.result,
-              error: payload.error,
-            };
+        if (isToolCallResultPayload(event.payload)) {
+          setLastToolCall((prev) => {
+            if (prev?.tool_call_id === event.payload.tool_call_id) {
+              return {
+                ...prev,
+                result: event.payload.result,
+                error: event.payload.error,
+              };
+            }
+            return prev;
+          });
+          if (event.payload.error) {
+            setExpandedSections((prev) => ({ ...prev, error: true }));
+          } else {
+            setExpandedSections((prev) => ({ ...prev, result: true }));
           }
-          return prev;
-        });
-        if (payload.error) {
-          setExpandedSections((prev) => ({ ...prev, error: true }));
-        } else {
-          setExpandedSections((prev) => ({ ...prev, result: true }));
         }
       },
     },
@@ -97,6 +104,9 @@ export function ToolInspector({ sessionId }: ToolInspectorProps) {
             <button
               onClick={() => toggleSection("args")}
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              aria-expanded={expandedSections.args}
+              aria-controls="tool-args-content"
+              aria-label={`${expandedSections.args ? "Collapse" : "Expand"} arguments`}
             >
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Arguments
@@ -110,6 +120,9 @@ export function ToolInspector({ sessionId }: ToolInspectorProps) {
             <AnimatePresence>
               {expandedSections.args && (
                 <motion.div
+                  id="tool-args-content"
+                  role="region"
+                  aria-label="Tool arguments"
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
@@ -117,8 +130,8 @@ export function ToolInspector({ sessionId }: ToolInspectorProps) {
                   className="overflow-hidden"
                 >
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-                    <pre className="text-xs overflow-x-auto">
-                      {JSON.stringify(lastToolCall.args, null, 2)}
+                    <pre className="text-xs overflow-x-auto" role="textbox" aria-readonly="true">
+                      {sanitizeJson(lastToolCall.args)}
                     </pre>
                   </div>
                 </motion.div>
@@ -153,7 +166,7 @@ export function ToolInspector({ sessionId }: ToolInspectorProps) {
                   >
                     <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
                       <pre className="text-xs overflow-x-auto">
-                        {JSON.stringify(lastToolCall.result, null, 2)}
+                        {sanitizeJson(lastToolCall.result)}
                       </pre>
                     </div>
                   </motion.div>
@@ -189,7 +202,7 @@ export function ToolInspector({ sessionId }: ToolInspectorProps) {
                   >
                     <div className="px-4 py-3 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
                       <pre className="text-xs overflow-x-auto text-red-700 dark:text-red-400">
-                        {lastToolCall.error}
+                        {sanitizeJson(lastToolCall.error)}
                       </pre>
                     </div>
                   </motion.div>

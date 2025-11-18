@@ -13,6 +13,10 @@ import type {
   WorkflowTransitionEvent,
   WorkflowCompletedEvent,
 } from "@/types/events";
+import {
+  isWorkflowStepStartedPayload,
+  isWorkflowStepCompletedPayload,
+} from "@/lib/typeGuards";
 
 interface WorkflowGraphProps {
   sessionId: string;
@@ -55,40 +59,42 @@ export function WorkflowGraph({ sessionId }: WorkflowGraphProps) {
         }));
       },
       workflow_step_started: (event) => {
-        const payload = (event as WorkflowStepStartedEvent).payload;
-        setWorkflowState((prev) => {
-          const newSteps = new Map(prev.steps);
-          newSteps.set(payload.step_id, {
-            id: payload.step_id,
-            description: payload.description,
-            status: "active",
-            startTime: new Date(event.timestamp),
+        if (isWorkflowStepStartedPayload(event.payload)) {
+          setWorkflowState((prev) => {
+            const newSteps = new Map(prev.steps);
+            newSteps.set(event.payload.step_id, {
+              id: event.payload.step_id,
+              description: event.payload.description,
+              status: "active",
+              startTime: new Date(event.timestamp),
+            });
+            return {
+              ...prev,
+              steps: newSteps,
+              currentStep: event.payload.step_id,
+            };
           });
-          return {
-            ...prev,
-            steps: newSteps,
-            currentStep: payload.step_id,
-          };
-        });
+        }
       },
       workflow_step_completed: (event) => {
-        const payload = (event as WorkflowStepCompletedEvent).payload;
-        setWorkflowState((prev) => {
-          const newSteps = new Map(prev.steps);
-          const step = newSteps.get(payload.step_id);
-          if (step) {
-            newSteps.set(payload.step_id, {
-              ...step,
-              status: "completed",
-              endTime: new Date(event.timestamp),
-            });
-          }
-          return {
-            ...prev,
-            steps: newSteps,
-            currentStep: undefined,
-          };
-        });
+        if (isWorkflowStepCompletedPayload(event.payload)) {
+          setWorkflowState((prev) => {
+            const newSteps = new Map(prev.steps);
+            const step = newSteps.get(event.payload.step_id);
+            if (step) {
+              newSteps.set(event.payload.step_id, {
+                ...step,
+                status: "completed",
+                endTime: new Date(event.timestamp),
+              });
+            }
+            return {
+              ...prev,
+              steps: newSteps,
+              currentStep: undefined,
+            };
+          });
+        }
       },
       workflow_transition: (event) => {
         const payload = (event as WorkflowTransitionEvent).payload;
@@ -166,6 +172,8 @@ export function WorkflowGraph({ sessionId }: WorkflowGraphProps) {
                       selectedStep === step.id && "ring-4 ring-blue-300"
                     )}
                     title={step.description}
+                    aria-label={`Workflow step ${step.id}: ${step.description}`}
+                    aria-pressed={selectedStep === step.id}
                   >
                     <Workflow className="w-6 h-6 text-white" />
                   </button>

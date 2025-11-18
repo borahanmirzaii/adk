@@ -128,10 +128,13 @@ export function DebuggerSidebar({ sessionId }: DebuggerSidebarProps) {
           <button
             onClick={() => toggleSection("steps")}
             className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            aria-expanded={expandedSections.steps}
+            aria-controls="steps-content"
+            aria-label={`${expandedSections.steps ? "Collapse" : "Expand"} steps list`}
           >
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <span id="steps-header" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Steps ({steps.length})
               </span>
             </div>
@@ -144,6 +147,9 @@ export function DebuggerSidebar({ sessionId }: DebuggerSidebarProps) {
           <AnimatePresence>
             {expandedSections.steps && (
               <motion.div
+                id="steps-content"
+                role="region"
+                aria-labelledby="steps-header"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
