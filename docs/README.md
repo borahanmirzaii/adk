@@ -14,6 +14,9 @@ docs/
 │   ├── medium-adk-guide.html    # Medium article on ADK
 │   ├── blog-state-memory.html   # Google Cloud blog on state & memory
 │   └── RESOURCES.md             # Resource index
+├── integrations/                # Third-party integrations
+│   ├── COPILOTKIT_LANGGRAPH_LANGFUSE.md  # Integration guide
+│   └── QUICK_START.md           # Quick setup guides
 ├── tutorials/                   # Tutorial materials (to be added)
 ├── cookbooks/                   # Code recipes and patterns
 │   ├── BASIC_PATTERNS.md       # Common patterns and recipes
@@ -77,6 +80,9 @@ docs/
 - **Multi-Agent**: `design-patterns/COMMON_PATTERNS.md` → Multi-Agent Orchestration
 - **State & Memory**: `insp/blog-state-memory.html` + `insp/adk-docs/docs/sessions/`
 - **Deployment**: `insp/adk-docs/docs/deploy/`
+- **UI Integration**: `integrations/COPILOTKIT_LANGGRAPH_LANGFUSE.md` → CopilotKit
+- **Observability**: `integrations/COPILOTKIT_LANGGRAPH_LANGFUSE.md` → Langfuse
+- **Workflow Orchestration**: `integrations/COPILOTKIT_LANGGRAPH_LANGFUSE.md` → LangGraph
 
 ### By Use Case
 - **Customer Service**: `insp/adk-samples/python/agents/customer-service/`
@@ -130,11 +136,17 @@ All sample agents are in `insp/adk-samples/python/agents/`. Each includes:
 
 ## 🔗 External Links
 
+### ADK Official
 - **ADK Documentation**: https://google.github.io/adk-docs/
 - **ADK Samples**: https://github.com/google/adk-samples
 - **ADK Python**: https://github.com/google/adk-python
 - **ADK Go**: https://github.com/google/adk-go
 - **ADK Java**: https://github.com/google/adk-java
+
+### Integrations
+- **CopilotKit**: https://docs.copilotkit.ai/ | https://github.com/CopilotKit/CopilotKit
+- **LangGraph**: https://langchain-ai.github.io/langgraph/ | https://github.com/langchain-ai/langgraph
+- **Langfuse**: https://langfuse.com/docs | https://github.com/langfuse/langfuse
 
 ## 📝 Contributing
 
