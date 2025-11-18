@@ -47,7 +47,48 @@ Note the output - you'll need:
 - DB URL: `postgresql://postgres:postgres@localhost:54322/postgres`
 - Studio: `http://localhost:54323`
 
-## Step 4: Setup n8n
+## Step 4: Setup Langfuse (Self-Hosted)
+
+```bash
+# Create langfuse docker-compose
+cat > docker-compose.langfuse.yml << 'EOF'
+version: '3.8'
+
+services:
+  langfuse-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  langfuse:
+    image: langfuse/langfuse:latest
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: change-this-secret
+      NEXTAUTH_URL: http://localhost:3001
+      SALT: change-this-salt
+    depends_on:
+      - langfuse-db
+
+volumes:
+  langfuse_db_data:
+EOF
+
+# Start Langfuse
+docker-compose -f docker-compose.langfuse.yml up -d
+```
+
+Access Langfuse at: `http://localhost:3001` (default: admin@langfuse.com / langfuse)
+
+## Step 5: Setup n8n
 
 ```bash
 # Create docker-compose.yml
@@ -73,7 +114,7 @@ docker-compose up -d
 
 Access n8n at: `http://localhost:5678`
 
-## Step 5: Setup Backend
+## Step 6: Setup Backend
 
 ```bash
 # Create backend directory
@@ -88,7 +129,7 @@ uv add fastapi uvicorn[standard] python-dotenv pydantic-settings
 uv add google-adk supabase
 ```
 
-## Step 6: Create Database Schema
+## Step 7: Create Database Schema
 
 ```bash
 # Create migration
@@ -119,7 +160,47 @@ Apply migration:
 supabase db reset
 ```
 
-## Step 7: Create Backend Code
+## Step 8: Create Backend Code
+
+### Add Langfuse Integration
+
+```python
+# backend/app/services/langfuse_setup.py
+from openinference.instrumentation.google_adk import GoogleADKInstrumentor
+from langfuse.opentelemetry import LangfuseSpanProcessor
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+import os
+
+def setup_langfuse():
+    langfuse_public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key = os.getenv("LANGFUSE_SECRET_KEY")
+    langfuse_host = os.getenv("LANGFUSE_HOST", "http://localhost:3001")
+    
+    if not langfuse_public_key:
+        return
+    
+    trace.set_tracer_provider(TracerProvider())
+    GoogleADKInstrumentor().instrument()
+    tracer_provider = trace.get_tracer_provider()
+    tracer_provider.add_span_processor(
+        BatchSpanProcessor(LangfuseSpanProcessor(
+            public_key=langfuse_public_key,
+            secret_key=langfuse_secret_key,
+            host=langfuse_host
+        ))
+    )
+```
+
+### Add LangGraph (Optional)
+
+```bash
+cd backend
+uv add langgraph langchain-google-genai
+```
+
+## Step 9: Create Backend Code
 
 ```python
 # backend/app/config.py
@@ -149,8 +230,12 @@ session_service = DatabaseSessionService(db_url=settings.SUPABASE_DB_URL)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.supabase_session import session_service
+from app.services.langfuse_setup import setup_langfuse
 from app.agents.base_agent import root_agent
 from google.adk.runners import Runner
+
+# Setup Langfuse observability
+setup_langfuse()
 
 app = FastAPI()
 
@@ -181,23 +266,26 @@ async def chat(request: dict):
     }
 ```
 
-## Step 8: Create .env File
+## Step 10: Create .env File
 
 ```bash
 # backend/.env
 GEMINI_API_KEY=your-gemini-api-key
 SUPABASE_URL=http://localhost:54321
 SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres
+LANGFUSE_PUBLIC_KEY=pk-lf-...  # Get from Langfuse dashboard
+LANGFUSE_SECRET_KEY=sk-lf-...   # Get from Langfuse dashboard
+LANGFUSE_HOST=http://localhost:3001
 ```
 
-## Step 9: Run Backend
+## Step 11: Run Backend
 
 ```bash
 cd backend
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-## Step 10: Test Setup
+## Step 12: Test Setup
 
 ```bash
 # Test health
@@ -209,7 +297,37 @@ curl -X POST http://localhost:8000/api/chat \
   -d '{"message": "Hello!"}'
 ```
 
-## Step 11: Setup Frontend (Optional)
+## Step 13: Setup Frontend with CopilotKit
+
+```bash
+# Create Next.js app
+npx create-next-app@latest frontend --typescript --tailwind --app
+
+cd frontend
+npm install @copilotkit/react-core @copilotkit/react-ui @supabase/supabase-js
+```
+
+```typescript
+// frontend/app/layout.tsx
+'use client'
+import { CopilotKit } from '@copilotkit/react-core'
+import { CopilotSidebar } from '@copilotkit/react-ui'
+import '@copilotkit/react-ui/styles.css'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <CopilotKit runtimeUrl="http://localhost:8000/api/copilotkit">
+          <CopilotSidebar>
+            {children}
+          </CopilotSidebar>
+        </CopilotKit>
+      </body>
+    </html>
+  )
+}
+```
 
 ```bash
 # Create Next.js app
@@ -229,12 +347,13 @@ export const supabase = createClient(
 )
 ```
 
-## Step 12: Verify Everything Works
+## Step 14: Verify Everything Works
 
 1. **Supabase Studio**: http://localhost:54323
-2. **n8n**: http://localhost:5678
-3. **FastAPI Docs**: http://localhost:8000/docs
-4. **Next.js**: http://localhost:3000 (if setup)
+2. **Langfuse**: http://localhost:3001
+3. **n8n**: http://localhost:5678
+4. **FastAPI Docs**: http://localhost:8000/docs
+5. **Next.js**: http://localhost:3000
 
 ## Common Issues
 
@@ -263,9 +382,11 @@ docker-compose restart
 ## Next Steps
 
 1. Read `LOCAL_FIRST_SETUP.md` for detailed setup
-2. Check `INTEGRATION_PATTERNS.md` for advanced patterns
-3. Build your first agent workflow
-4. Set up n8n automations
+2. Check `COMPLETE_STACK.md` for Langfuse, LangGraph, and CopilotKit integration
+3. Review `INTEGRATION_PATTERNS.md` for advanced patterns
+4. Build your first agent workflow
+5. Set up n8n automations
+6. Monitor agents in Langfuse dashboard
 
 ## Resources
 

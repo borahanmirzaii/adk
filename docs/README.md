@@ -23,6 +23,7 @@ docs/
 │   └── STARTER_TEMPLATE.md      # Ready-to-use starter template
 ├── local-first/                 # Local-first development setup
 │   ├── LOCAL_FIRST_SETUP.md     # Complete OrbStack + Supabase + n8n setup
+│   ├── COMPLETE_STACK.md        # Full stack with Langfuse, LangGraph, CopilotKit
 │   ├── INTEGRATION_PATTERNS.md  # Integration patterns and examples
 │   └── QUICK_START.md           # Quick start guide
 ├── tutorials/                   # Tutorial materials (to be added)
