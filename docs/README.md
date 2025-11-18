@@ -21,6 +21,10 @@ docs/
 │   ├── BEST_PRACTICES.md        # Best practices for FastAPI + Next.js
 │   ├── PROJECT_SETUP.md         # Step-by-step project setup
 │   └── STARTER_TEMPLATE.md      # Ready-to-use starter template
+├── local-first/                 # Local-first development setup
+│   ├── LOCAL_FIRST_SETUP.md     # Complete OrbStack + Supabase + n8n setup
+│   ├── INTEGRATION_PATTERNS.md  # Integration patterns and examples
+│   └── QUICK_START.md           # Quick start guide
 ├── tutorials/                   # Tutorial materials (to be added)
 ├── cookbooks/                   # Code recipes and patterns
 │   ├── BASIC_PATTERNS.md       # Common patterns and recipes
@@ -85,8 +89,10 @@ docs/
 - **State & Memory**: `insp/blog-state-memory.html` + `insp/adk-docs/docs/sessions/`
 - **Deployment**: `insp/adk-docs/docs/deploy/`
 - **UI Integration**: `integrations/COPILOTKIT_LANGGRAPH_LANGFUSE.md` → CopilotKit
-- **Observability**: `integrations/COPILOTKIT_LANGGRAPH_LANGFUSE.md` → Langfuse
+- **Observability**: `integrations/COPILOTKIT_LANGFUSE.md` → Langfuse
 - **Workflow Orchestration**: `integrations/COPILOTKIT_LANGGRAPH_LANGFUSE.md` → LangGraph
+- **Local-First Setup**: `local-first/LOCAL_FIRST_SETUP.md` → OrbStack + Supabase + n8n
+- **Database Integration**: `local-first/INTEGRATION_PATTERNS.md` → Supabase patterns
 
 ### By Use Case
 - **Customer Service**: `insp/adk-samples/python/agents/customer-service/`
