@@ -22,6 +22,7 @@ wheels/
 
 # Virtual environments
 .env
+.env.local
 .venv
 env/
 venv/
@@ -58,3 +59,29 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
+# Ruff
+.ruff_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.pnpm-store/
+frontend/pnpm-lock.yaml
+
+# Infrastructure
+infrastructure/supabase/.branches/
+infrastructure/supabase/.temp/
+infrastructure/n8n/.n8n/
+
+# Logs
+*.log
+logs/
+backend/logs/
+
+# Docker
+docker-compose.override.yml
+
+# Environment
+.env.local
+.env.*.local
