@@ -17,6 +17,10 @@ docs/
 ├── integrations/                # Third-party integrations
 │   ├── COPILOTKIT_LANGGRAPH_LANGFUSE.md  # Integration guide
 │   └── QUICK_START.md           # Quick setup guides
+├── architecture/                # Architecture and setup guides
+│   ├── BEST_PRACTICES.md        # Best practices for FastAPI + Next.js
+│   ├── PROJECT_SETUP.md         # Step-by-step project setup
+│   └── STARTER_TEMPLATE.md      # Ready-to-use starter template
 ├── tutorials/                   # Tutorial materials (to be added)
 ├── cookbooks/                   # Code recipes and patterns
 │   ├── BASIC_PATTERNS.md       # Common patterns and recipes
