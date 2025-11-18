@@ -1,0 +1,6 @@
+[submodule "docs/insp/adk-docs"]
+	path = docs/insp/adk-docs
+	url = https://github.com/google/adk-docs.git
+[submodule "docs/insp/adk-samples"]
+	path = docs/insp/adk-samples
+	url = https://github.com/google/adk-samples.git
