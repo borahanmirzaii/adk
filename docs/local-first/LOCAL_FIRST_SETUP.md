@@ -30,6 +30,9 @@ Local-first development emphasizes:
 - **Supabase**: Local PostgreSQL database with real-time capabilities
 - **n8n**: Workflow automation for backend processes
 - **ADK**: Agent Development Kit for AI agents
+- **Langfuse**: LLM observability and tracing (self-hosted)
+- **LangGraph**: Workflow orchestration for complex agent behaviors
+- **CopilotKit**: Agent UI SDK for building agent interfaces
 - **FastAPI**: Python backend API
 - **Next.js**: React frontend
 
