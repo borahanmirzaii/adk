@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "change-this-secret-key-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    AUTH_REQUIRED: bool = False  # Set to True to require auth on all routes
+    ALLOW_ANONYMOUS: bool = True  # Allow anonymous access when AUTH_REQUIRED is False
+    
+    # Multi-tenancy
+    MULTI_TENANCY_ENABLED: bool = False  # Enable multi-tenancy support
+    DEFAULT_TENANT_ID: str = "00000000-0000-0000-0000-000000000000"  # Default tenant UUID
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60

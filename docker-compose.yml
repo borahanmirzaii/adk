@@ -53,6 +53,28 @@ services:
     depends_on:
       - redis
 
+  # RQ Worker - Async task processing
+  rq-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: rq-worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_DB=1
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash-exp}
+    networks:
+      - adk-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+    volumes:
+      - ./backend:/app
+
 networks:
   adk-network:
     driver: bridge

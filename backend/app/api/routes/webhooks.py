@@ -1,8 +1,9 @@
 """Webhook endpoints for n8n integration"""
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import Dict, Any
 from pydantic import BaseModel
+from app.middleware.auth import require_api_key
 
 router = APIRouter()
 
@@ -14,8 +15,11 @@ class WebhookPayload(BaseModel):
 
 
 @router.post("/n8n")
-async def n8n_webhook(request: Request) -> Dict[str, str]:
-    """Receive webhooks from n8n"""
+async def n8n_webhook(
+    request: Request,
+    _: bool = Depends(require_api_key())
+) -> Dict[str, str]:
+    """Receive webhooks from n8n (requires API key)"""
     try:
         payload = await request.json()
         # TODO: Process webhook payload
@@ -25,8 +29,12 @@ async def n8n_webhook(request: Request) -> Dict[str, str]:
 
 
 @router.post("/alerts")
-async def alert_webhook(payload: WebhookPayload) -> Dict[str, str]:
-    """Receive alert webhooks"""
+async def alert_webhook(
+    payload: WebhookPayload,
+    request: Request,
+    _: bool = Depends(require_api_key())
+) -> Dict[str, str]:
+    """Receive alert webhooks (requires API key)"""
     # TODO: Process alerts and trigger appropriate actions
     return {"status": "received", "message": "Alert processed"}
 

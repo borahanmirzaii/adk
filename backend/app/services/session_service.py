@@ -38,8 +38,9 @@ class SessionService:
         user_id: str,
         app_name: str = "adk-devops-assistant",
         initial_state: Optional[Dict[str, Any]] = None,
+        tenant_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Create a new session"""
+        """Create a new session with tenant isolation"""
         try:
             session_data = {
                 "session_id": session_id,
@@ -48,6 +49,10 @@ class SessionService:
                 "state": initial_state or {},
                 "events": [],
             }
+            # Add tenant_id if provided (for multi-tenancy)
+            if tenant_id:
+                session_data["tenant_id"] = tenant_id
+            
             response = self.supabase.table("adk_sessions").insert(session_data).execute()
             return response.data[0] if response.data else session_data
         except Exception as e:

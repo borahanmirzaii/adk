@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adk-backend
+  namespace: adk-production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: adk-backend
+  template:
+    metadata:
+      labels:
+        app: adk-backend
+    spec:
+      containers:
+      - name: backend
+        image: your-registry/adk-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adk-secrets
+              key: google-api-key
+        - name: SUPABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: adk-config
+              key: supabase-url
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adk-secrets
+              key: supabase-service-key
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: adk-config
+              key: redis-url
+        - name: LANGFUSE_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adk-secrets
+              key: langfuse-public-key
+        - name: LANGFUSE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adk-secrets
+              key: langfuse-secret-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adk-backend-service
+  namespace: adk-production
+spec:
+  selector:
+    app: adk-backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+

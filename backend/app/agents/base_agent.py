@@ -62,7 +62,7 @@ class BaseADKAgent:
         wait=wait_exponential(multiplier=1, min=2, max=10),
     )
     async def execute(
-        self, user_message: str, session_id: Optional[str] = None
+        self, user_message: str, session_id: Optional[str] = None, user_id: Optional[str] = None
     ) -> str:
         """
         Execute agent with tracing and session persistence
@@ -70,6 +70,7 @@ class BaseADKAgent:
         Args:
             user_message: User's input
             session_id: Optional session ID for persistence
+            user_id: Optional user ID for session creation
 
         Returns:
             Agent's response
@@ -77,7 +78,7 @@ class BaseADKAgent:
         # Start Langfuse trace
         trace = observability_service.trace(
             name=f"{self.agent_name}_execution",
-            metadata={"session_id": session_id, "user_message": user_message},
+            metadata={"session_id": session_id, "user_message": user_message, "user_id": user_id},
         )
 
         try:
@@ -87,7 +88,8 @@ class BaseADKAgent:
                 if not session_data:
                     await session_service.create_session(
                         session_id=session_id,
-                        user_id="default-user",  # TODO: Get from auth
+                        user_id=user_id or "anonymous",
+                        tenant_id=None,  # Tenant ID should be passed from route
                     )
 
             # Execute agent
