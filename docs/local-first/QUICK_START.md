@@ -329,14 +329,6 @@ export default function RootLayout({ children }) {
 }
 ```
 
-```bash
-# Create Next.js app
-npx create-next-app@latest frontend --typescript --tailwind --app
-
-cd frontend
-npm install @supabase/supabase-js
-```
-
 ```typescript
 // frontend/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
